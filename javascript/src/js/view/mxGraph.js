@@ -3069,8 +3069,8 @@ mxGraph.prototype.sizeDidChange = function()
 	{
 		var border = this.getBorder();
 		
-		var width = Math.max(0, bounds.x + bounds.width + border);
-		var height = Math.max(0, bounds.y + bounds.height + border);
+		var width = Math.max(0, bounds.x + bounds.width + 2 * border * this.view.scale);
+		var height = Math.max(0, bounds.y + bounds.height + 2 * border * this.view.scale);
 		
 		if (this.minimumContainerSize != null)
 		{
@@ -5447,29 +5447,6 @@ mxGraph.prototype.cellSizeUpdated = function(cell, ignoreChildren)
 				}
 				else
 				{
-					var state = this.view.getState(cell) || this.view.createState(cell);
-					var align = (state.style[mxConstants.STYLE_ALIGN] || mxConstants.ALIGN_CENTER);
-					
-					if (align == mxConstants.ALIGN_RIGHT)
-					{
-						geo.x += geo.width - size.width;
-					}
-					else if (align == mxConstants.ALIGN_CENTER)
-					{
-						geo.x += Math.round((geo.width - size.width) / 2);
-					}
-
-					var valign = this.getVerticalAlign(state);
-					
-					if (valign == mxConstants.ALIGN_BOTTOM)
-					{
-						geo.y += geo.height - size.height;
-					}
-					else if (valign == mxConstants.ALIGN_MIDDLE)
-					{
-						geo.y += Math.round((geo.height - size.height) / 2);
-					}
-
 					geo.width = size.width;
 					geo.height = size.height;
 				}
@@ -6863,14 +6840,6 @@ mxGraph.prototype.getConnectionPoint = function(vertex, constraint, round)
 					flipV = (mxUtils.getValue(vertex.style, 'stencilFlipV', 0) == 1) || flipV;
 				}
 				
-				if (direction == mxConstants.DIRECTION_NORTH ||
-					direction == mxConstants.DIRECTION_SOUTH)
-				{
-					var temp = flipH;
-					flipH = flipV
-					flipV = temp;
-				}
-				
 				if (flipH)
 				{
 					point.x = 2 * bounds.getCenterX() - point.x;
@@ -7797,9 +7766,8 @@ mxGraph.prototype.center = function(horizontal, vertical, cx, cy)
 	cy = (cy != null) ? cy : 0.5;
 	
 	var hasScrollbars = mxUtils.hasScrollbars(this.container);
-	var padding = 2 * this.getBorder();
-	var cw = this.container.clientWidth - padding;
-	var ch = this.container.clientHeight - padding;
+	var cw = this.container.clientWidth;
+	var ch = this.container.clientHeight;
 	var bounds = this.getGraphBounds();
 
 	var t = this.view.translate;

@@ -39,9 +39,9 @@ mxHandle.prototype.cursor = 'default';
 mxHandle.prototype.image = null;
 
 /**
- * Variable: ignoreGrid
+ * Variable: image
  * 
- * Default is false.
+ * Specifies the <mxImage> to be used to render the handle. Default is null.
  */
 mxHandle.prototype.ignoreGrid = false;
 

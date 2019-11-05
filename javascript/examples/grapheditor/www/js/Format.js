@@ -5582,8 +5582,6 @@ DiagramFormatPanel.prototype.addGridOption = function(container)
 			return (graph.isGridEnabled()) ? color : null;
 		}, function(color)
 		{
-			var enabled = graph.isGridEnabled();
-			
 			if (color == mxConstants.NONE)
 			{
 				graph.setGridEnabled(false);
@@ -5596,11 +5594,7 @@ DiagramFormatPanel.prototype.addGridOption = function(container)
 
 			input.style.display = (graph.isGridEnabled()) ? '' : 'none';
 			stepper.style.display = input.style.display;
-			
-			if (enabled != graph.isGridEnabled())
-			{
-				ui.fireEvent(new mxEventObject('gridEnabledChanged'));
-			}
+			ui.fireEvent(new mxEventObject('gridEnabledChanged'));
 		}, '#e0e0e0',
 		{
 			install: function(apply)
