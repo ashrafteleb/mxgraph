@@ -20,9 +20,9 @@ var mxClient =
 	 * 
 	 * versionMajor.versionMinor.buildNumber.revisionNumber
 	 * 
-	 * Current version is 4.0.5.
+	 * Current version is 4.0.6.
 	 */
-	VERSION: '4.0.5',
+	VERSION: '4.0.6',
 
 	/**
 	 * Variable: IS_IE
@@ -42928,7 +42928,7 @@ mxCell.prototype.getAttribute = function(name, defaultValue)
 		userObject.nodeType == mxConstants.NODETYPE_ELEMENT) ?
 		userObject.getAttribute(name) : null;
 		
-	return val || defaultValue;
+	return (val != null) ? val : defaultValue;
 };
 
 /**
@@ -61186,6 +61186,14 @@ mxGraph.prototype.getConnectionPoint = function(vertex, constraint, round)
 					flipV = (mxUtils.getValue(vertex.style, 'stencilFlipV', 0) == 1) || flipV;
 				}
 				
+				if (direction == mxConstants.DIRECTION_NORTH ||
+					direction == mxConstants.DIRECTION_SOUTH)
+				{
+					var temp = flipH;
+					flipH = flipV
+					flipV = temp;
+				}
+				
 				if (flipH)
 				{
 					point.x = 2 * bounds.getCenterX() - point.x;
@@ -70005,6 +70013,14 @@ mxGraphHandler.prototype.rotationEnabled = true;
 mxGraphHandler.prototype.maxLivePreview = 0;
 
 /**
+ * Variable: allowLivePreview
+ * 
+ * If live preview is allowed on this system. Default is true for systems with
+ * SVG support.
+ */
+mxGraphHandler.prototype.allowLivePreview = mxClient.IS_SVG;
+
+/**
  * Function: isEnabled
  * 
  * Returns <enabled>.
@@ -70409,10 +70425,11 @@ mxGraphHandler.prototype.start = function(cell, x, y)
 		{
 			var p = this.graph.model.getParent(state.cell);
 			
-			return (!this.cloning && this.isCellMoving(state.cell)) ||
+			return state.cell != null && ((!this.cloning &&
+				this.isCellMoving(state.cell)) ||
 				(state.cell != (this.target || parent) && !ignore &&
 				(this.target == null || this.graph.model.getChildCount(
-				this.target) >= 2) && p != (this.target || parent));  
+				this.target) >= 2) && p != (this.target || parent)));  
 		});
 	}
 };
@@ -70491,8 +70508,8 @@ mxGraphHandler.prototype.getDelta = function(me)
 	var point = mxUtils.convertPoint(this.graph.container, me.getX(), me.getY());
 	var s = this.graph.view.scale;
 	
-	return new mxPoint(this.roundLength((point.x - this.first.x) / s) * s,
-		this.roundLength((point.y - this.first.y) / s) * s);
+	return new mxPoint(this.roundLength((point.x - this.first.x - this.graph.panDx) / s) * s,
+		this.roundLength((point.y - this.first.y - this.graph.panDy) / s) * s);
 };
 
 /**
@@ -70555,17 +70572,11 @@ mxGraphHandler.prototype.mouseMove = function(sender, me)
 
 			var clone = graph.isCloneEvent(me.getEvent()) && graph.isCellsCloneable() && this.isCloneEnabled();
 			var gridEnabled = graph.isGridEnabledEvent(me.getEvent());
+			var cell = me.getCell();
 			var hideGuide = true;
+			var target = null;
 			this.cloning = clone;
 			
-			
-			
-			
-			
-
-			var target = null;
-			var cell = me.getCell();
-
 			if (graph.isDropEnabled() && this.highlightEnabled)
 			{
 				// Contains a call to getCellAt to find the cell under the mouse
@@ -70615,15 +70626,12 @@ mxGraphHandler.prototype.mouseMove = function(sender, me)
 				this.highlight.hide();
 			}
 			
-			
-			
-			
 			if (this.livePreviewActive && clone)
 			{
 				this.resetLivePreview();
 				this.livePreviewActive = false;
 			}
-			else if (this.maxLivePreview >= this.cellCount && !this.livePreviewActive && mxClient.IS_SVG)
+			else if (this.maxLivePreview >= this.cellCount && !this.livePreviewActive && this.allowLivePreview)
 			{
 				this.setHandlesVisibleForCells(this.cells, false);
 				this.livePreviewActive = true;
@@ -70649,7 +70657,7 @@ mxGraphHandler.prototype.mouseMove = function(sender, me)
 				var tx = this.bounds.x - (graph.snap(this.bounds.x / scale - trx.x) + trx.x) * scale;
 				var ty = this.bounds.y - (graph.snap(this.bounds.y / scale - trx.y) + trx.y) * scale;
 				var v = this.snap(new mxPoint(dx, dy));
-			
+				
 				dx = v.x - tx;
 				dy = v.y - ty;
 			}
@@ -70722,8 +70730,7 @@ mxGraphHandler.prototype.updatePreview = function(remote)
 	{
 		if (this.cells != null)
 		{
-			this.updateLivePreview(this.currentDx - this.graph.panDx,
-				this.currentDy - this.graph.panDy);
+			this.updateLivePreview(this.currentDx, this.currentDy);
 		}
 	}
 	else
@@ -70741,8 +70748,8 @@ mxGraphHandler.prototype.updatePreviewShape = function()
 {
 	if (this.shape != null)
 	{
-		this.shape.bounds = new mxRectangle(Math.round(this.pBounds.x + this.currentDx - this.graph.panDx),
-				Math.round(this.pBounds.y + this.currentDy - this.graph.panDy), this.pBounds.width, this.pBounds.height);
+		this.shape.bounds = new mxRectangle(Math.round(this.pBounds.x + this.currentDx),
+				Math.round(this.pBounds.y + this.currentDy), this.pBounds.width, this.pBounds.height);
 		this.shape.redraw();
 	}
 };
@@ -71209,8 +71216,7 @@ mxGraphHandler.prototype.moveCells = function(cells, dx, dy, clone, target, evt)
 		
 		// Passes all selected cells in order to correctly clone or move into
 		// the target cell. The method checks for each cell if its movable.
-		cells = this.graph.moveCells(cells, dx - this.graph.panDx / this.graph.view.scale,
-				dy - this.graph.panDy / this.graph.view.scale, clone, target, evt);
+		cells = this.graph.moveCells(cells, dx, dy, clone, target, evt);
 
 		// Removes parent if all child cells are removed
 		var temp = [];
